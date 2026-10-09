@@ -1,5 +1,5 @@
 local SharedTableRegistry = game:GetService("SharedTableRegistry")
-local RunService = game:GetService("RunService")
+--local RunService = game:GetService("RunService")
 
 local LocalBoidTable = {}
 
