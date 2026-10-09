@@ -1,15 +1,12 @@
 local SharedTableRegistry = game:GetService("SharedTableRegistry")
 local RunService = game:GetService("RunService")
 
-local SharedBoidTable = SharedTableRegistry:GetSharedTable("BoidTableCurrent")
 local LocalBoidTable = {}
 
 local Actor = script:GetActor()
 local BoidDone = Actor.Parent.BoidDone
 
 local BoidsToUpdate = {}
-
-local Paused = false
 
 local function NanCheck(a): boolean
 	return a ~= a
@@ -157,17 +154,17 @@ local function update(Dt)
 		if NanCheck(Acceleration) then
 			Acceleration = Vector3.zero
 		end
-
-		--Boid.Acceleration = Acceleration
-		--Boid.Velocity = Velocity
-		--Boid.Position = Position
-		SharedBoid = {}
+		Boid.Acceleration = Acceleration
+		Boid.Velocity = Velocity
+		Boid.Position = Position
+		local SharedBoid = {}
 		SharedBoid.Position = Position
 		SharedBoid.Velocity = Velocity
 		NextSharedBoidTable[Boid.Id] = SharedBoid
 
 		BoidDone:Fire(Boid.Id, Position, Velocity, Acceleration)
 	end
+	--print(SharedTableRegistry:GetSharedTable("BoidTableNext"))
 end
 Actor:BindToMessageParallel("Step", update)
 Actor:BindToMessage("NewBoid", function(Boid)
@@ -178,10 +175,4 @@ Actor:BindToMessage("DestroyBoid", function(Id)
 end)
 Actor:BindToMessage("UpdateBoid", function(Id, Property, Input)
 	BoidsToUpdate[Id][Property] = Input
-end)
-Actor:BindToMessage("Pause", function()
-	Paused = true
-end)
-Actor:BindToMessage("Unpause", function()
-	Paused = false
 end)
