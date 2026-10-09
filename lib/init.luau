@@ -40,8 +40,14 @@ local TARGET_WEIGHT = 1
 local BoidArray = {}
 Boid.BoidArray = BoidArray
 local SharedBoidTable = SharedTable.new()
+local SharedBoidTableNext = SharedTable.new()
 local BoidIdMap = {}
-SharedTableRegistry:SetSharedTable("BoidTable", SharedBoidTable)
+SharedTableRegistry:SetSharedTable("BoidTableCurrent", SharedBoidTable)
+SharedTableRegistry:SetSharedTable("BoidTableNext", SharedBoidTableNext)
+
+local IsUpdating = false
+local BoidsUpdated = 0
+local NumBoids = 0
 
 local ActorArray = {}
 local CurrentActor = 0
@@ -115,6 +121,19 @@ function Boid.Interface.Unpause()
 		Actor:SendMessage("Unpause")
 	end
 end
+function Boid.Interface.Step(Dt)
+	if IsUpdating then
+		--print("hi")
+		return
+	end
+	IsUpdating = true
+	SharedTableRegistry:SetSharedTable("BoidTableCurrent", SharedTableRegistry:GetSharedTable("BoidTableNext"))
+	--print("Current table", SharedTableRegistry:GetSharedTable("BoidTableCurrent"))
+	SharedTableRegistry:SetSharedTable("BoidTableNext", SharedTable.new())
+	for _, Actor in ActorArray do
+		Actor:SendMessage("Step", Dt)
+	end
+end
 function Boid.Interface.new(
 	Model: BasePart | Model,
 	Position: Vector3?,
@@ -174,11 +193,12 @@ function Boid.Interface.new(
 	end
 	table.insert(BoidArray, self)
 	BoidIdMap[Id] = self
-	SharedBoidTable[Id] = {
+	SharedTableRegistry:GetSharedTable("BoidTableCurrent")[Id] = {
 		Id = self.Id,
 		Position = self.Position,
 		Velocity = self.Velocity,
 	}
+	NumBoids += 1
 	return setmetatable(self, Boid.Metatable)
 end
 function Boid.Schema:Destroy()
@@ -187,6 +207,7 @@ function Boid.Schema:Destroy()
 	BoidIdMap[self.Id] = nil
 	table.remove(BoidArray, table.find(BoidArray, self))
 	SharedBoidTable[self.Id] = nil
+	NumBoids -= 1
 end
 function Boid.Schema:GetDirection(): Vector3
 	return self.Velocity.Unit
@@ -219,33 +240,44 @@ function Boid.Schema:Set(Property: string, input)
 		self:SetObstacleAvoidRadius(input)
 		return
 	end
+	if Property == "Id" then
+		error("Id is immutable!")
+		return
+	end
 	self[Property] = input
 	self.__Actor:SendMessage("UpdateBoid", self.Id, Property, input)
 end
 -- Position update --
-RunService.Heartbeat:Connect(function()
+RunService.Heartbeat:Connect(function(Dt)
 	if not AutoUpdate then
 		return
 	end
+	Boid.Interface.Step(Dt)
+	--[[
 	local PartTable = table.create(#BoidArray)
 	local PositionTable = table.create(#BoidArray)
 	for _, BoidToUpdate in ipairs(BoidArray) do
 		if BoidToUpdate.Model:IsA("BasePart") then
-			table.insert(PartTable, Boid.Model)
-			table.insert(PositionTable, CFrame.new(Boid.Position, Boid.Position + Boid.Velocity))
+			table.insert(PartTable, BoidToUpdate.Model)
+			table.insert(PositionTable, CFrame.new(BoidToUpdate.Position, BoidToUpdate.Position + BoidToUpdate.Velocity))
 		else
-			BoidToUpdate.Model:PivotTo(CFrame.new(Boid.Position, Boid.Position + Boid.Velocity))
+			BoidToUpdate.Model:PivotTo(CFrame.new(BoidToUpdate.Position, BoidToUpdate.Position + BoidToUpdate.Velocity))
 		end
 	end
-	workspace:BulkMoveTo(PartTable, PositionTable, Enum.BulkMoveMode.FireCFrameChanged)
+	workspace:BulkMoveTo(PartTable, PositionTable, Enum.BulkMoveMode.FireCFrameChanged)]]
 end)
--- Velocity update --
--- Seperated from position update due to possible differing update frequencies
 script.BoidDone.Event:Connect(function(BoidId, Position, Velocity, Acceleration)
 	local BoidToUpdate = Boid.Interface.GetBoidFromId(BoidId)
 	BoidToUpdate.Position = Position
 	BoidToUpdate.Velocity = Velocity
 	BoidToUpdate.Acceleration = Acceleration
+
+	BoidToUpdate.Model:PivotTo(CFrame.lookAt(Position, Position + Velocity))
+	BoidsUpdated += 1
+	if BoidsUpdated >= NumBoids then
+		BoidsUpdated = 0
+		IsUpdating = false
+	end
 end)
 
 return Boid.Interface

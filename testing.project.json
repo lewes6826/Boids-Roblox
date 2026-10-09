@@ -1,6 +1,6 @@
 {
     "name": "Boids testing",
-    "emitLegacyScripts": false,
+    "emitLegacyScripts": true,
     "tree": {
       "$className": "DataModel",
       "StarterPlayer": {

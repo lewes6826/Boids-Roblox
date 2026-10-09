@@ -11,10 +11,10 @@ BoidTemplate.CanQuery = false
 BoidTemplate.Anchored = true
 
 Boids.Pause()
-for _ = 1, 300, 1 do
-	local X = RandomGenerator:NextNumber(-5, 5)
-	local Y = RandomGenerator:NextNumber(-5, 5)
-	local Z = RandomGenerator:NextNumber(-5, 5)
+for _ = 1, 500, 1 do
+	local X = RandomGenerator:NextNumber(-20, 20)
+	local Y = RandomGenerator:NextNumber(-20, 20)
+	local Z = RandomGenerator:NextNumber(-20, 20)
 	local Position = Vector3.new(X, Y, Z)
 	X = RandomGenerator:NextNumber(-10, 10)
 	Y = RandomGenerator:NextNumber(-10, 10)

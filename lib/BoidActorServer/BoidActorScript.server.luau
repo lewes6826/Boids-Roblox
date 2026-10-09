@@ -1,7 +1,7 @@
 local SharedTableRegistry = game:GetService("SharedTableRegistry")
 local RunService = game:GetService("RunService")
 
-local SharedBoidTable = SharedTableRegistry:GetSharedTable("BoidTable")
+local SharedBoidTable = SharedTableRegistry:GetSharedTable("BoidTableCurrent")
 local LocalBoidTable = {}
 
 local Actor = script:GetActor()
@@ -11,6 +11,9 @@ local BoidsToUpdate = {}
 
 local Paused = false
 
+local function NanCheck(a): boolean
+	return a ~= a
+end
 local function GetAngleBetweenVectors(V1: Vector3, V2: Vector3): number
 	return math.acos(V1:Dot(V2) / V1.Magnitude / V2.Magnitude)
 end
@@ -121,12 +124,12 @@ function ComputeVelocity(self, Acceleration, Dt)
 	return ClampVector(self.Velocity + Acceleration * Dt, self.MaxSpeed)
 end
 local function UpdateLocalBoidTable()
-	debug.profilebegin("table shit")
+	local SharedBoidTable = SharedTableRegistry:GetSharedTable("BoidTableCurrent")
 	for i, Boid in SharedBoidTable do
-		if BoidsToUpdate[i] then
+		--[[if BoidsToUpdate[i] then
 			LocalBoidTable[i] = BoidsToUpdate[i]
 			continue
-		end
+		end]]
 		local LocalBoid = LocalBoidTable[i]
 		if not LocalBoid then
 			LocalBoid = table.create(3)
@@ -136,38 +139,37 @@ local function UpdateLocalBoidTable()
 		LocalBoid.Velocity = Boid.Velocity
 		LocalBoid.Id = Boid.Id
 	end
-	debug.profileend()
 end
-RunService.Heartbeat:ConnectParallel(function(Dt)
-	if Paused then
-		return
-	end
+local function update(Dt)
 	UpdateLocalBoidTable()
+	local NextSharedBoidTable = SharedTableRegistry:GetSharedTable("BoidTableNext")
 	for _, Boid in BoidsToUpdate do
 		local Acceleration = ComputeAcceleration(Boid)
 		local Velocity = ComputeVelocity(Boid, Acceleration, Dt)
 		local Position = Boid.Position + Velocity * Dt
 
-		if Position ~= Position then
+		if NanCheck(Position) then
 			Position = Vector3.zero
 		end
-		if Velocity ~= Velocity then
-			Position = Vector3.zero
+		if NanCheck(Velocity) then
+			Velocity = Vector3.zero
 		end
-		if Acceleration ~= Acceleration then
-			Position = Vector3.zero
+		if NanCheck(Acceleration) then
+			Acceleration = Vector3.zero
 		end
 
-		Boid.Acceleration = Acceleration
-		Boid.Velocity = Velocity
-		Boid.Position = Position
-
-		SharedBoidTable[Boid.Id].Position = Position
-		SharedBoidTable[Boid.Id].Velocity = Velocity
+		--Boid.Acceleration = Acceleration
+		--Boid.Velocity = Velocity
+		--Boid.Position = Position
+		SharedBoid = {}
+		SharedBoid.Position = Position
+		SharedBoid.Velocity = Velocity
+		NextSharedBoidTable[Boid.Id] = SharedBoid
 
 		BoidDone:Fire(Boid.Id, Position, Velocity, Acceleration)
 	end
-end)
+end
+Actor:BindToMessageParallel("Step", update)
 Actor:BindToMessage("NewBoid", function(Boid)
 	BoidsToUpdate[Boid.Id] = Boid
 end)
