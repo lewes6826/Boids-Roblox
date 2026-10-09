@@ -144,7 +144,7 @@ local function update(Dt)
 		local Acceleration = ComputeAcceleration(Boid)
 		local Velocity = ComputeVelocity(Boid, Acceleration, Dt)
 		local Position = Boid.Position + Velocity * Dt
-		
+
 		if NanCheck(Position) then
 			Position = Vector3.zero
 		end
