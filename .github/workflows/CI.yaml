@@ -37,7 +37,7 @@ jobs:
         run: rojo build -o pack.rbxm pack.project.json
 
       - name: Upload pack.rbxm as build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with: 
           name: boids
           path: pack.rbxm
@@ -102,13 +102,13 @@ jobs:
         run: rojo build -o testing.rbxl testing.project.json
 
       - name: Upload test-pack.rbxm as build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with: 
           name: hello_world
           path: test-pack.rbxm
 
       - name: Upload testing.rbxl as build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with: 
           name: hello_world
           path: testing.rbxl
